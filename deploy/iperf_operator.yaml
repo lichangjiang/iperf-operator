@@ -1,0 +1,137 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: iperf-operator
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: iperf-operator
+  namespace: iperf-operator
+  labels:
+    operator: iperf
+---
+# The role for the operator to manage resources in the system namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: iperf-operator
+  namespace: iperf-operator
+  labels:
+    operator: iperf
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - secrets
+  - configmaps
+  verbs:
+  - "*"
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: iperf-operator
+  name: iperf-operator-global
+  labels:
+    operator: iperf 
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - "nodes"
+  verbs:
+  - "list"
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - "*"
+- apiGroups: 
+  - iperf.test.svc
+  resources: 
+  - "*"
+  verbs: 
+  - "*"
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: iperf-operator
+  namespace: iperf-operator
+  labels:
+    operator: iperf
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: iperf-operator
+subjects:
+- kind: ServiceAccount
+  name: iperf-operator
+  namespace: iperf-operator
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: iperf-operator-global
+  namespace: iperf-operator
+subjects:
+- kind: ServiceAccount
+  name: iperf-operator 
+  namespace: iperf-operator
+roleRef:
+  kind: ClusterRole 
+  name: iperf-operator-global 
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iperf-operator-deploy 
+  namespace: iperf-operator
+  labels:
+    operator: iperf-operator
+spec:
+  selector:
+    matchExpressions:
+    - key: "operator"
+      operator: In
+      values: ["iperf-operator"]
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        operator: iperf-operator 
+    spec:
+      serviceAccountName: iperf-operator
+      containers:
+      - name: iperf-operator
+        image: 172.17.8.101:30002/iperf/iperf-operator:v0.0.12 
+        imagePullPolicy: Always
+        command: ["iperf-operator","operator"] 
+        env:
+        - name: IPER_OPERATOR_IMAGE
+          value: "172.17.8.101:30002/iperf/iperf-operator:v0.0.12"
+        - name: IPERF_EMAIL_USER
+          valueFrom:
+            secretKeyRef:
+              name: iperf-email-secret
+              key: user
+        - name: IPERF_EMAIL_PWD 
+          valueFrom:
+            secretKeyRef:
+              name: iperf-email-secret
+              key: password 
+        - name: IPERF_EMAIL_SMTP 
+          valueFrom:
+            secretKeyRef:
+              name: iperf-email-secret
+              key: smtp
+        - name: IPERF_EMAIL_PORT
+          valueFrom:
+            secretKeyRef:
+              name: iperf-email-secret
+              key: port 

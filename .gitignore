@@ -1,0 +1,10 @@
+/.vscode/
+/.work
+/.cache
+/.idea
+/build
+/deploy/email_secret.yaml
+/vendor/
+/vendor.orig/
+/uml
+.cz-config.js
