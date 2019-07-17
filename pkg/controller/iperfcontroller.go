@@ -6,8 +6,8 @@ import (
 	iperfalpha1 "github.com/lichangjiang/iperf-operator/pkg/apis/iperf.test.svc/alpha1"
 	iperfalpha1clientset "github.com/lichangjiang/iperf-operator/pkg/client/clientset/versioned"
 	"github.com/lichangjiang/iperf-operator/pkg/util"
-	"github.com/lichangjiang/kubecontroller"
-	"github.com/lichangjiang/kubeutil"
+	"github.com/lichangjiang/k8s/kubecontroller"
+	"github.com/lichangjiang/k8s/kubeutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -23,7 +23,7 @@ const (
 	serviceAccountName        = "iperf-operator"
 )
 
-var IperfOperatorImage string = "172.17.8.101:30002/iperf/iperf-operator:v0.0.14"
+var IperfOperatorImage string = "riverlcj/iperf:v0.1.0"
 var PodNameSpace = ""
 var PodName = ""
 

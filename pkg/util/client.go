@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	iperfalpha1clientset "github.com/lichangjiang/iperf-operator/pkg/client/clientset/versioned"
-	"github.com/lichangjiang/kubeutil"
+	"github.com/lichangjiang/k8s/kubeutil"
 	"k8s.io/client-go/kubernetes"
 )
 

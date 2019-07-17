@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/lichangjiang/kubeutil"
+	"github.com/lichangjiang/k8s/kubeutil"
 	batch "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

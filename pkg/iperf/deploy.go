@@ -7,7 +7,7 @@ import (
 	iperfalpha1 "github.com/lichangjiang/iperf-operator/pkg/apis/iperf.test.svc/alpha1"
 	iperfalpha1clientset "github.com/lichangjiang/iperf-operator/pkg/client/clientset/versioned"
 	"github.com/lichangjiang/iperf-operator/pkg/util"
-	"github.com/lichangjiang/kubeutil"
+	"github.com/lichangjiang/k8s/kubeutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -15,11 +15,11 @@ build.img: install
 	sudo docker build -t riverlcj/iperf-operator:$(VERSION) ./
 
 docker.push: build.img
-	sudo docker tag riverlcj/iperf-operator:$(VERSION) $(HABORADDR)/iperf/iperf-operator:$(VERSION)
-	sudo docker push  172.17.8.101:30002/iperf/iperf-operator:$(VERSION)
+	sudo docker tag riverlcj/iperf-operator:$(VERSION) $(HABORADDR)/$(HABORREPO):$(VERSION)
+	sudo docker push  $(HABORADDR)/$(HABORREPO):$(VERSION)
 
 clean:
 	rm -rf ./build
-	sudo docker rmi 192.168.38.13/iperf/iperf-operator:$(VERSION) 
+	sudo docker rmi  $(HABORADDR)/$(HABORREPO):$(VERSION)
 	sudo docker rmi riverlcj/iperf-operator:$(VERSION) 
 

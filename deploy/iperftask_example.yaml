@@ -4,10 +4,10 @@ metadata:
   name: my-iperf
   namespace: iperf-operator
 spec:
-  iperfImage: 172.17.8.101:30002/networkstatic/iperf3
+  iperfImage: networkstatic/iperf3
   toEmail: 305120108@qq.com
   serverSpec:
     port: 9000
   clientSpec:
-    interval: 1
-    duration: 2
+    interval: 2
+    duration: 10

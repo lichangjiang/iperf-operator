@@ -83,7 +83,7 @@ subjects:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: iperf-task-global
+  name: iperf-operator-global
   namespace: iperf-operator
 subjects:
 - kind: ServiceAccount
@@ -91,7 +91,7 @@ subjects:
   namespace: iperf-operator
 roleRef:
   kind: ClusterRole 
-  name: iperf-task-global 
+  name: iperf-operator-global 
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: apps/v1
@@ -116,7 +116,7 @@ spec:
       serviceAccountName: iperf-operator
       containers:
       - name: iperf-operator
-        image: 172.17.8.101:30002/iperf/iperf-operator:v0.0.14 
+        image: riverlcj/iperf:v0.1.0 
         imagePullPolicy: Always
         command: ["iperf-operator","operator"] 
         env:

@@ -6,7 +6,7 @@ import (
 
 	iperfalpha1 "github.com/lichangjiang/iperf-operator/pkg/apis/iperf.test.svc/alpha1"
 	"github.com/lichangjiang/iperf-operator/pkg/util"
-	"github.com/lichangjiang/kubeutil"
+	"github.com/lichangjiang/k8s/kubeutil"
 	"gotest.tools/assert"
 	is "gotest.tools/assert/cmp"
 	"k8s.io/apimachinery/pkg/api/errors"
