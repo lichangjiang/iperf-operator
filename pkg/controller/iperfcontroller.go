@@ -20,10 +20,12 @@ const (
 	Finished           string = "finished"
 	Dispatched         string = "dispatched"
 	Failed             string = "failed"
-	serviceAccountName        = "iperf-task-deploy"
+	serviceAccountName        = "iperf-operator"
 )
 
-var IperfOperatorImage string = "172.17.8.101:30002/iperf/iperf-operator:v0.0.12"
+var IperfOperatorImage string = "172.17.8.101:30002/iperf/iperf-operator:v0.0.14"
+var PodNameSpace = ""
+var PodName = ""
 
 var IperfTaskResource = kubecontroller.CustomResource{
 	Name:    "iperftask",

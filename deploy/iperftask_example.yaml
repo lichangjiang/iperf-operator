@@ -1,78 +1,8 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: iperf-task
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: iperf-task-deploy
-  namespace: iperf-task
----
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  namespace: iperf-task
-  name: iperf-task-deploy
-rules:
-- apiGroups: [""]
-  resources: ["pods","services","pods/log","configmaps"]
-  verbs: ["*"]
-- apiGroups: ["apps"]
-  resources: ["deployments"]
-  verbs: ["*"]
-- apiGroups: ["batch"]
-  resources: ["jobs"]
-  verbs: ["*"]
-- apiGroups: ["iperf.test.svc"]
-  resources: ["*"]
-  verbs: ["*"]
----
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: iperf-task-deploy
-  namespace: iperf-task
-subjects:
-- kind: ServiceAccount 
-  name: iperf-task-deploy
-roleRef:
-  kind: Role
-  name: iperf-task-deploy
-  apiGroup: rbac.authorization.k8s.io
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  namespace: iperf-task
-  name: iperf-task-global
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - "nodes"
-  verbs:
-  - "list"
----
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: iperf-task-global
-  namespace: iperf-task
-subjects:
-- kind: ServiceAccount
-  name: iperf-task-deploy
-  namespace: iperf-task
-roleRef:
-  kind: ClusterRole 
-  name: iperf-task-global 
-  apiGroup: rbac.authorization.k8s.io
----
 apiVersion: iperf.test.svc/alpha1
 kind: IperfTask
 metadata: 
   name: my-iperf
-  namespace: iperf-task
+  namespace: iperf-operator
 spec:
   iperfImage: 172.17.8.101:30002/networkstatic/iperf3
   toEmail: 305120108@qq.com

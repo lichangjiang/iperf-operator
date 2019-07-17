@@ -30,21 +30,25 @@ func init() {
 }
 
 func startOperator(cmd *cobra.Command, args []string) error {
-	deployImage := os.Getenv("IPERF_OPERATOR_IMAGE")
 
+	podNs := os.Getenv("POD_NAMESPACE")
+	podName := os.Getenv("POD_NAME")
 	runEnv := os.Getenv("IPERF_OPERATOR_RUNENV")
 	emailUser := os.Getenv("IPERF_EMAIL_USER")
 	emailPwd := os.Getenv("IPERF_EMAIL_PWD")
 	emailSmtp := os.Getenv("IPERF_EMAIL_SMTP")
 	emailPort := os.Getenv("IPERF_EMAIL_PORT")
-	if deployImage != "" {
-		iperfcontroller.IperfOperatorImage = deployImage
+
+	if podNs == "" || podName == "" {
+		return fmt.Errorf("empty pod namespace or pod name")
 	}
 
 	if emailUser == "" || emailPwd == "" || emailSmtp == "" || emailPort == "" {
 		return fmt.Errorf("email user password smtpServer or port empty")
 	}
 
+	iperfcontroller.PodName = podName
+	iperfcontroller.PodNameSpace = podNs
 	util.User = emailUser
 	util.Smtp = emailSmtp
 	util.Pwd = emailPwd
@@ -67,13 +71,19 @@ func startOperator(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	image, err := kubeutil.GetPodImage(k8sClient, podNs, podName, "iperf-operator")
+	if err != nil {
+		return fmt.Errorf("failed to get iperf-operator image wirh error %+v", err)
+	}
+	iperfcontroller.IperfOperatorImage = image
+
 	stopChan := make(chan struct{})
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 	controller := iperfcontroller.NewIperfController(k8sClient, iperfClient)
 
-	watcher := kubecontroller.NewWatcher(controller, iperfcontroller.IperfTaskResource, "", iperfClient.IperfAlpha1().RESTClient())
+	watcher := kubecontroller.NewWatcher(controller, iperfcontroller.IperfTaskResource, podNs, iperfClient.IperfAlpha1().RESTClient())
 	watcher.Watch(&iperfalpha1.IperfTask{}, 1, stopChan)
 
 	select {

@@ -27,7 +27,26 @@ rules:
   - services
   - secrets
   - configmaps
+  - pods/log
   verbs:
+  - "*"
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - "*"
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - "*"
+- apiGroups: 
+  - iperf.test.svc
+  resources: 
+  - "*"
+  verbs: 
   - "*"
 ---
 kind: ClusterRole
@@ -44,18 +63,6 @@ rules:
   - "nodes"
   verbs:
   - "list"
-- apiGroups:
-  - apps
-  resources:
-  - deployments
-  verbs:
-  - "*"
-- apiGroups: 
-  - iperf.test.svc
-  resources: 
-  - "*"
-  verbs: 
-  - "*"
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -76,15 +83,15 @@ subjects:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: iperf-operator-global
+  name: iperf-task-global
   namespace: iperf-operator
 subjects:
 - kind: ServiceAccount
-  name: iperf-operator 
+  name: iperf-operator
   namespace: iperf-operator
 roleRef:
   kind: ClusterRole 
-  name: iperf-operator-global 
+  name: iperf-task-global 
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: apps/v1
@@ -109,12 +116,18 @@ spec:
       serviceAccountName: iperf-operator
       containers:
       - name: iperf-operator
-        image: 172.17.8.101:30002/iperf/iperf-operator:v0.0.12 
+        image: 172.17.8.101:30002/iperf/iperf-operator:v0.0.14 
         imagePullPolicy: Always
         command: ["iperf-operator","operator"] 
         env:
-        - name: IPER_OPERATOR_IMAGE
-          value: "172.17.8.101:30002/iperf/iperf-operator:v0.0.12"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         - name: IPERF_EMAIL_USER
           valueFrom:
             secretKeyRef:

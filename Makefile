@@ -1,5 +1,5 @@
-VERSION := v0.0.12
-
+#VERSION := v0.0.13
+#haboraddr := 172.17.8.101:30002
 .PHONY: all
 
 all: docker.push
@@ -15,7 +15,7 @@ build.img: install
 	sudo docker build -t riverlcj/iperf-operator:$(VERSION) ./
 
 docker.push: build.img
-	sudo docker tag riverlcj/iperf-operator:$(VERSION) 172.17.8.101:30002/iperf/iperf-operator:$(VERSION)
+	sudo docker tag riverlcj/iperf-operator:$(VERSION) $(HABORADDR)/iperf/iperf-operator:$(VERSION)
 	sudo docker push  172.17.8.101:30002/iperf/iperf-operator:$(VERSION)
 
 clean:

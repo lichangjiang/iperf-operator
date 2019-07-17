@@ -7,4 +7,6 @@
 /vendor/
 /vendor.orig/
 /uml
+make_for_my_k8s.sh
 .cz-config.js
+*.swp
