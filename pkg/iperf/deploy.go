@@ -235,6 +235,8 @@ func (deployer *IperfTaskDeployer) waitToCreateDeployAndSVC(nodesMap map[string]
 }
 
 //顺序执行点对点iperf测试
+//nodesMap node名字 -> node HostName映射
+//serverIpMap node HostName -> server ip映射
 func (deployer *IperfTaskDeployer) dispatchJobs(nodesMap map[string]string,
 	serverIpMap map[string]string) (map[string][]CSKey,
 	map[CSKey]IperfClientStatis) {
