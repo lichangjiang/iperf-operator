@@ -35,6 +35,8 @@ type IperfTaskInfo struct {
 }
 
 type ClientConfig struct {
+	Mode     string
+	Parallel int32
 	Interval int32
 	Duration int32
 }
@@ -65,6 +67,20 @@ func NewIperfTaskInfo(iperfTask *iperfalpha1.IperfTask, namespace, name, uid str
 	image := iperfTask.Spec.IperfImage
 	email := iperfTask.Spec.ToEmail
 
+	mode := iperfTask.Spec.ClientSpec.Mode
+	if mode != "slow" {
+		mode = "fast"
+	} else {
+		mode = "slow"
+	}
+
+	parallel := iperfTask.Spec.ClientSpec.Parallel
+	if parallel < 1 {
+		parallel = 1
+	} else if parallel > 100 {
+		parallel = 100
+	}
+
 	return &IperfTaskInfo{
 		iperfTask: iperfTask,
 		Image:     image,
@@ -74,6 +90,8 @@ func NewIperfTaskInfo(iperfTask *iperfalpha1.IperfTask, namespace, name, uid str
 		Namespace: namespace,
 		Uid:       uid,
 		ClientConfig: ClientConfig{
+			Mode:     mode,
+			Parallel: parallel,
 			Interval: interval,
 			Duration: duration,
 		},

@@ -28,8 +28,10 @@ type IperfServerSpec struct {
 }
 
 type IperfClientSpec struct {
-	Interval int32 `json:"interval,omitempty"`
-	Duration int32 `json:"duration,omitempty"`
+	Mode     string `json:"mode,omitempty"`
+	Parallel int32  `json:"parallel,omitempty"`
+	Interval int32  `json:"interval,omitempty"`
+	Duration int32  `json:"duration,omitempty"`
 }
 
 type IperfStatus struct {
