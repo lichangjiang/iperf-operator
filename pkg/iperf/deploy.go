@@ -3,6 +3,7 @@ package iperf
 import (
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/lichangjiang/iperf-operator/pkg/algorithm"
@@ -231,19 +232,40 @@ func (deployer *IperfTaskDeployer) createNodeDeployment(hostName string) *appsv1
 
 func (deployer *IperfTaskDeployer) waitToCreateDeployAndSVC(nodesMap map[string]string) (map[string]string, error) {
 	serverIpMap := make(map[string]string)
+	var wg sync.WaitGroup
+	var mutex sync.Mutex
+	errMsg := ""
 	for _, v := range nodesMap {
-		deployment := deployer.createNodeDeployment(v)
-		kubeutil.SetOwnerRef(&deployment.ObjectMeta, &deployer.ownerRef)
-		deployment, err := deployer.k8sClient.AppsV1().Deployments(deployer.iperfTaskInfo.Namespace).Create(deployment)
-		if err != nil {
-			return nil, fmt.Errorf("failed create deployment to node:%s. %+v", v, err)
-		}
-		ip, err := deployer.createServiceForDeployment(deployment)
-		if err != nil {
-			return nil, err
-		}
-		klog.Infof("server deployment for node %s ip is %s", v, ip)
-		serverIpMap[v] = ip
+		wg.Add(1)
+		go func(host string) {
+			defer wg.Done()
+			v := host
+			deployment := deployer.createNodeDeployment(v)
+			kubeutil.SetOwnerRef(&deployment.ObjectMeta, &deployer.ownerRef)
+			deployment, err := deployer.k8sClient.AppsV1().Deployments(deployer.iperfTaskInfo.Namespace).Create(deployment)
+			if err != nil {
+				mutex.Lock()
+				defer mutex.Unlock()
+				errMsg = errMsg + fmt.Sprintf("failed create deployment to node:%s. %+v\n", v, err)
+				return
+			}
+			ip, err := deployer.createServiceForDeployment(deployment)
+			if err != nil {
+				mutex.Lock()
+				defer mutex.Unlock()
+				errMsg = errMsg + err.Error() + "\n"
+				return
+			}
+			klog.Infof("server deployment for node %s ip is %s", v, ip)
+			mutex.Lock()
+			serverIpMap[v] = ip
+			mutex.Unlock()
+		}(v)
+	}
+	wg.Wait()
+
+	if errMsg != "" {
+		return nil, fmt.Errorf(errMsg)
 	}
 
 	err := kubeutil.WaitingForLabeledPodsToRun(deployer.k8sClient, RoleLabel+"="+ServerPrefix, deployer.iperfTaskInfo.Namespace, 300)
