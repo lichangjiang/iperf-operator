@@ -3,7 +3,9 @@ package iperf
 import (
 	"fmt"
 	"strconv"
+	"time"
 
+	"github.com/lichangjiang/iperf-operator/pkg/algorithm"
 	iperfalpha1 "github.com/lichangjiang/iperf-operator/pkg/apis/iperf.test.svc/alpha1"
 	iperfalpha1clientset "github.com/lichangjiang/iperf-operator/pkg/client/clientset/versioned"
 	"github.com/lichangjiang/iperf-operator/pkg/util"
@@ -252,6 +254,13 @@ func (deployer *IperfTaskDeployer) waitToCreateDeployAndSVC(nodesMap map[string]
 	return serverIpMap, nil
 }
 
+type logMessage struct {
+	server string
+	client string
+	statis IperfClientStatis
+	err    error
+}
+
 //顺序执行点对点iperf测试
 //nodesMap node名字 -> node HostName映射
 //serverIpMap node HostName -> server ip映射
@@ -259,41 +268,85 @@ func (deployer *IperfTaskDeployer) dispatchJobs(nodesMap map[string]string,
 	serverIpMap map[string]string) (map[string][]CSKey,
 	map[CSKey]IperfClientStatis) {
 
+	nodeLen := len(nodesMap)
+	parallel := int(deployer.iperfTaskInfo.ClientConfig.Parallel)
+	if parallel > nodeLen {
+		parallel = nodeLen
+	}
+
+	mode := deployer.iperfTaskInfo.ClientConfig.Mode
+	var jobMap algorithm.JobMap
+	if parallel == 1 && mode == "fast" {
+		jobMap = algorithm.FastSerialize(nodesMap, serverIpMap)
+	} else if parallel > 1 {
+		jobMap = algorithm.Parallelize(nodesMap, serverIpMap, parallel)
+	} else {
+		jobMap = algorithm.Serialize(nodesMap, serverIpMap)
+	}
+
 	serverKeyMap := make(map[string][]CSKey)
 	statisMap := make(map[CSKey]IperfClientStatis)
-	for _, serverv := range nodesMap {
-		ip := serverIpMap[serverv]
 
-		var csKeys []CSKey
-		for _, v := range nodesMap {
-			if v == serverv {
-				continue
-			}
-
-			job := NewIperfJob(deployer.iperfTaskInfo.Namespace,
-				v, deployer.iperfTaskInfo.Image,
-				ip, deployer.iperfTaskInfo.Port,
-				deployer.iperfTaskInfo.ClientConfig,
-				deployer.ownerRef)
-
-			log, err := job.Run(deployer.k8sClient)
-			if err == nil {
-				iperfJson, err := ParseLog(log)
-				if err != nil {
-					klog.Warningf("IperfJob for node %s parse log error.%+v", v, err)
-				} else {
-					key := CSKey{
-						Server: serverv,
-						Client: v,
-					}
-					statisMap[key] = iperfJson.Analyse()
-					csKeys = append(csKeys, key)
+	for i := 0; i < jobMap.EpochSize; i++ {
+		jobs := jobMap.Jobs[i]
+		jobLen := len(jobs)
+		inChan := make(chan logMessage, 0)
+		done := 0
+		start := time.Now()
+		for _, job := range jobs {
+			go func(jobnode algorithm.JobNode) {
+				logMsg := logMessage{
+					server: jobnode.ServerHost,
+					client: jobnode.ClientHost,
 				}
-			} else {
-				klog.Warningf("IperfJob for node %s error.%+v", v, err)
+				job := NewIperfJob(deployer.iperfTaskInfo.Namespace,
+					jobnode.ClientHost, deployer.iperfTaskInfo.Image,
+					jobnode.ServerIp, deployer.iperfTaskInfo.Port,
+					deployer.iperfTaskInfo.ClientConfig,
+					deployer.ownerRef)
+
+				log, err := job.Run(deployer.k8sClient)
+				if err == nil {
+					iperfJson, err := ParseLog(log)
+					if err != nil {
+						logMsg.err = err
+					} else {
+						logMsg.statis = iperfJson.Analyse()
+					}
+				} else {
+					logMsg.err = err
+				}
+				inChan <- logMsg
+			}(job)
+		}
+
+		for done < jobLen {
+			select {
+			case msg := <-inChan:
+				done++
+				if msg.err == nil {
+					key := CSKey{
+						Server: msg.server,
+						Client: msg.client,
+					}
+					statisMap[key] = msg.statis
+					csKeys, ok := serverKeyMap[msg.server]
+					if !ok {
+						csKeys = []CSKey{}
+					}
+					serverKeyMap[msg.server] = append(csKeys, key)
+				} else {
+					klog.Infoln("----------------------------------------------")
+					klog.Warningf("IperfJob for node %s error.%+v", msg.client, msg.err)
+					klog.Infoln("----------------------------------------------")
+				}
 			}
 		}
-		serverKeyMap[serverv] = csKeys
+		elapsed := time.Now().Sub(start)
+		klog.Infoln("**********************************************")
+		klog.Infof("epoch %d all %d jobs finished in %f seconds\n", i, jobLen, elapsed.Seconds())
+		klog.Infoln("**********************************************")
 	}
+
 	return serverKeyMap, statisMap
 }

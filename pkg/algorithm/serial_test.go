@@ -21,21 +21,21 @@ func TestSerialize(t *testing.T) {
 }
 
 func TestParallel(t *testing.T) {
-	nodeHostMap, svcIpMap := createData(5)
+	nodeHostMap, svcIpMap := createData(8)
 
 	parallel := 2
 
-	for parallel <= 21 {
+	for parallel <= 8 {
 		fmt.Printf("*************parallel:%d****************\n", parallel)
 		result := Parallelize(nodeHostMap, svcIpMap, parallel)
 
-		if 20%parallel == 0 {
-			assert.Assert(t, is.Equal(result.EpochSize, 20/parallel))
+		if 56%parallel == 0 {
+			assert.Assert(t, is.Equal(result.EpochSize, 56/parallel))
 		} else {
-			assert.Assert(t, is.Equal(result.EpochSize, 20/parallel+1))
+			assert.Assert(t, is.Equal(result.EpochSize, 56/parallel+1))
 		}
 
-		assert.Assert(t, is.Equal(result.JobNodeSize, 20))
+		assert.Assert(t, is.Equal(result.JobNodeSize, 56))
 		parallel++
 		for i, m := range result.Jobs {
 			fmt.Printf("epoch %d -> %+v\n", i, m)

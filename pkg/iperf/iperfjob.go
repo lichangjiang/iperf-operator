@@ -58,7 +58,7 @@ func (job *IperfJob) Run(k8sClient kubernetes.Interface) (string, error) {
 		klog.Warning(err.Error())
 	}
 
-	timeout := time.Duration(2*job.ClientConfig.Duration) * time.Second
+	timeout := time.Duration(job.ClientConfig.Duration+20) * time.Second
 	if err := kubeutil.WaitForJobCompletion(k8sClient, j, timeout); err != nil {
 		return "", fmt.Errorf("failed to complete iperf-client job. %+v", err)
 	}
@@ -69,7 +69,8 @@ func (job *IperfJob) Run(k8sClient kubernetes.Interface) (string, error) {
 	}
 
 	kubeutil.DeleteBatchJob(k8sClient, job.Namespace, job.Name, false)
-	klog.Infof("iperf client job %s log \n%s", job.Name, log)
+	klog.V(4).Infof("iperf client job %s log \n%s", job.Name, log)
+	klog.Infof("iperf client job %s  get log successfully", job.Name)
 	return log, nil
 }
 

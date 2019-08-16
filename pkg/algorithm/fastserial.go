@@ -37,6 +37,7 @@ func FastSerialize(nodeHostMap, svcIpMap map[string]string) JobMap {
 				js := []JobNode{}
 
 				js = append(js, JobNode{
+					ServerHost: serverNode,
 					ClientHost: clientNode,
 					ServerIp:   serverIp,
 				})
@@ -56,6 +57,7 @@ func FastSerialize(nodeHostMap, svcIpMap map[string]string) JobMap {
 						}
 						nodeSelected.Insert(sn, cn)
 						js = append(js, JobNode{
+							ServerHost: sn,
 							ClientHost: cn,
 							ServerIp:   si,
 						})

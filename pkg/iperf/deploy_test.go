@@ -22,12 +22,14 @@ var IperfTestTask *iperfalpha1.IperfTask = &iperfalpha1.IperfTask{
 		},
 	},
 	Spec: iperfalpha1.IperfSpec{
-		IperfImage: "172.17.8.101:30002/networkstatic/iperf3",
+		IperfImage: "networkstatic/iperf3",
 		ToEmail:    "305120108@qq.com",
 		ServerSpec: iperfalpha1.IperfServerSpec{
 			Port: 9000,
 		},
 		ClientSpec: iperfalpha1.IperfClientSpec{
+			Mode:     "fast",
+			Parallel: 1,
 			Interval: 1,
 			Duration: 2,
 		},
@@ -62,11 +64,40 @@ func TestIperfServerDeploy(t *testing.T) {
 	var nodesMap map[string]string
 	nodesMap, err = kubeutil.GetNodeHostNames(k8sClient)
 	assert.NilError(t, err)
-	assert.Assert(t, is.Equal(len(nodesMap), 3))
+	assert.Assert(t, is.Equal(len(nodesMap), 7))
 
 	serverIpMap, err := deployer.waitToCreateDeployAndSVC(nodesMap)
 	assert.NilError(t, err)
-	assert.Assert(t, is.Equal(len(serverIpMap), 3))
+	assert.Assert(t, is.Equal(len(serverIpMap), 7))
+
+	err = myClient.IperfAlpha1().IperfTasks("default").Delete(iperfTask.Name, nil)
+	assert.NilError(t, err)
+}
+
+func TestDispatchJob(t *testing.T) {
+	klog.InitFlags(nil)
+	iperfTask := IperfTestTask
+	k8sClient, myClient, err := util.GetAllClientsetsOut(kubeutil.DefaultConfigStr())
+	assert.NilError(t, err)
+
+	iperfTask, err = myClient.IperfAlpha1().IperfTasks("default").Create(iperfTask)
+	assert.NilError(t, err)
+
+	ici := NewIperfTaskInfo(iperfTask, iperfTask.Namespace, iperfTask.Name, string(iperfTask.UID))
+	deployer := NewIperfTaskDeployer(k8sClient, myClient, ici)
+
+	var nodesMap map[string]string
+	nodesMap, err = kubeutil.GetNodeHostNames(k8sClient)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Equal(len(nodesMap), 8))
+
+	serverIpMap, err := deployer.waitToCreateDeployAndSVC(nodesMap)
+	assert.NilError(t, err)
+	assert.Assert(t, is.Equal(len(serverIpMap), 8))
+
+	csKeyMap, statisMap := deployer.dispatchJobs(nodesMap, serverIpMap)
+	assert.Assert(t, is.Equal(len(csKeyMap), 8))
+	assert.Assert(t, is.Equal(len(statisMap), 56))
 
 	err = myClient.IperfAlpha1().IperfTasks("default").Delete(iperfTask.Name, nil)
 	assert.NilError(t, err)

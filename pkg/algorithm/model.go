@@ -1,6 +1,7 @@
 package algorithm
 
 type JobNode struct {
+	ServerHost string
 	ClientHost string
 	ServerIp   string
 }

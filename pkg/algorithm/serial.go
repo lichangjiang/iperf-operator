@@ -6,9 +6,10 @@ func Serialize(nodeHostMap, svcIpMap map[string]string) JobMap {
 
 func Parallelize(nodeHostMap, svcIpMap map[string]string, parallel int) JobMap {
 	r := []map[string]string{}
+	ipHostMap := map[string]string{}
 	for _, serverHost := range nodeHostMap {
 		serverIp := svcIpMap[serverHost]
-
+		ipHostMap[serverIp] = serverHost
 		for _, client := range nodeHostMap {
 			if client == serverHost {
 				continue
@@ -36,6 +37,7 @@ func Parallelize(nodeHostMap, svcIpMap map[string]string, parallel int) JobMap {
 			m := r[i+j]
 			for k, v := range m {
 				js = append(js, JobNode{
+					ServerHost: ipHostMap[v],
 					ClientHost: k,
 					ServerIp:   v,
 				})
