@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
+	github.com/RoaringBitmap/roaring v0.4.18
 	github.com/coreos/bbolt v1.3.1-coreos.6 // indirect
 	github.com/coreos/etcd v3.3.13+incompatible // indirect
 	github.com/coreos/go-oidc v0.0.0-20180117170138-065b426bd416 // indirect
