@@ -23,7 +23,7 @@ const (
 	serviceAccountName        = "iperf-operator"
 )
 
-var IperfOperatorImage string = "riverlcj/iperf:v0.1.0"
+var IperfOperatorImage string = "riverlcj/iperf:v0.2.0"
 var PodNameSpace = ""
 var PodName = ""
 
