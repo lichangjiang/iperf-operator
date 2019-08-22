@@ -118,7 +118,26 @@ func NewIperfTaskDeployer(k8sClient kubernetes.Interface,
 }
 
 func (deployer *IperfTaskDeployer) Run() (string, error) {
-	nodesMap, err := kubeutil.GetNodeHostNames(deployer.k8sClient)
+	nodesMap, err := kubeutil.GetNodeHostNamesWithFilter(deployer.k8sClient, func(node *corev1.Node) bool {
+		if node.Spec.Unschedulable {
+			return false
+		}
+
+		if _, hasMasterRoleLabel := node.Labels["node-role.kubernetes.io/master"]; hasMasterRoleLabel {
+			return false
+		}
+
+		if len(node.Status.Conditions) == 0 {
+			return false
+		}
+
+		for _, cond := range node.Status.Conditions {
+			if cond.Type == corev1.NodeReady && cond.Status != corev1.ConditionTrue {
+				return false
+			}
+		}
+		return true
+	})
 	if err != nil {
 		return "", err
 	}
