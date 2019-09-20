@@ -1,12 +1,12 @@
-### IperfOperator基于Iperf3的k8s集群自动化网络测试工具
+# IperfOperator基于Iperf3的k8s集群自动化网络测试工具
 <hr>
 
-#### 功能:
+## 功能:
 - 自动测试k8s集群节点网络联通性
 - 自动测试k8s集群节点点对点网络带宽
 - 通过邮件发送结果报告
 
-### 使用：
+## 使用：
 1. 部署IperfTask CRD资源，IperfTask用于描述一次测试任务:<br>
 `kubectl apply -f ./deploy/crd/ipefTask.yaml`
 
@@ -56,3 +56,9 @@ spec:
 - duration:等于iperf3的测试持续时间
 - mode:分为fast和low两种模式，low模式是节点完全点对点测试，fast模式是节点快速点对点测试。
 
+## 结果报告:
+![结果邮件报告](https://github.com/lichangjiang/iperf-operator/blob/master/image/email_report.png)
+
+## Licensing
+
+Iperf-operator is under the Apache 2.0 license.
