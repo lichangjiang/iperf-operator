@@ -5,7 +5,7 @@ metadata:
   namespace: iperf-operator
 spec:
   iperfImage: networkstatic/iperf3
-  toEmail: 305120108@qq.com
+  toEmail: YOUR_RECEIVE_EMAIL
   serverSpec:
     port: 9000
   clientSpec:
