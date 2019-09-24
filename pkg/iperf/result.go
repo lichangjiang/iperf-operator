@@ -66,6 +66,7 @@ type TestStart struct {
 
 type Stream struct {
 	Socket        int     `json:"socket,omitempty"`
+	Packets       int     `json:"packets,omitempty"`
 	Start         float64 `json:"start"`
 	End           float64 `json:"end"`
 	Seconds       float64 `json:"seconds"`
@@ -100,9 +101,18 @@ type Receiver struct {
 	BitsPerSecond float64 `json:"bits_per_second"`
 }
 
+type Udp struct {
+	Receiver
+	JitterMs    float64 `json:"jitter_ms"`
+	LostPackets int     `json:"lost_packets"`
+	Packets     int     `json:"packets"`
+	LostPercent float64 `json:"lost_percent"`
+}
+
 type EndStream struct {
-	Sender   Sender   `json:"sender"`
-	Receiver Receiver `json:"receiver"`
+	Sender   Sender   `json:"sender,omitempty"`
+	Receiver Receiver `json:"receiver,omitempty"`
+	Udp      Udp      `json:"udp,omitempty"`
 }
 
 type SumSent struct {
@@ -121,6 +131,18 @@ type SumReceived struct {
 	Bytes         float64 `json:"bytes"`
 	BitsPerSecond float64 `json:"bits_per_second"`
 	Retransmits   int     `json:"retransmits"`
+}
+
+type Sum struct {
+	Start         float64 `json:"start"`
+	End           float64 `json:"end"`
+	Seconds       float64 `json:"seconds"`
+	Bytes         float64 `json:"bytes"`
+	BitsPerSecond float64 `json:"bits_per_second"`
+	JitterMs      float64 `json:"jitter_ms"`
+	LostPackets   int     `json:"lost_packets"`
+	Packets       int     `json:"packets"`
+	LostPercent   int     `json:"lost_percent"`
 }
 
 type CpuUtilPercent struct {
@@ -150,8 +172,9 @@ type IperfInterval struct {
 
 type IperfEnd struct {
 	Streams        []EndStream    `json:"streams"`
-	SumSent        SumSent        `json:"sum_sent"`
-	SumReceived    SumReceived    `json:"sum_received"`
+	SumSent        SumSent        `json:"sum_sent,omitempty"`
+	SumReceived    SumReceived    `json:"sum_received,omitempty"`
+	Sum            Sum            `json:"sum,omitempty"`
 	CpuUtilPercent CpuUtilPercent `json:"cpu_utilization_percent"`
 }
 
