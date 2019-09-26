@@ -1,7 +1,7 @@
 apiVersion: iperf.test.svc/alpha1
 kind: IperfTask
 metadata: 
-  name: my-tcp-iperf
+  name: my-udp-iperf
   namespace: iperf-operator
 spec:
   iperfImage: networkstatic/iperf3
@@ -9,6 +9,9 @@ spec:
   serverSpec:
     port: 9000
   clientSpec:
+    udp: true
+    bwLimit "1000M"
     mode: "fast"
-    interval: 2
-    duration: 10
+    interval: 10
+    duration: 60
+

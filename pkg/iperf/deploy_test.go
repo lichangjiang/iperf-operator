@@ -36,6 +36,31 @@ var IperfTestTask *iperfalpha1.IperfTask = &iperfalpha1.IperfTask{
 	},
 }
 
+var UdpIperfTestTask *iperfalpha1.IperfTask = &iperfalpha1.IperfTask{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "udp-test-task",
+		Namespace: "default",
+		Labels: map[string]string{
+			"iperf": "test-task",
+		},
+	},
+	Spec: iperfalpha1.IperfSpec{
+		IperfImage: "networkstatic/iperf3",
+		ToEmail:    "305120108@qq.com",
+		ServerSpec: iperfalpha1.IperfServerSpec{
+			Port: 9000,
+		},
+		ClientSpec: iperfalpha1.IperfClientSpec{
+			Mode:     "fast",
+			Parallel: 1,
+			Interval: 2,
+			Duration: 10,
+			Udp:      true,
+			BwLimit:  "1000M",
+		},
+	},
+}
+
 func TestGetNode(t *testing.T) {
 	k8sClient, _, err := util.GetAllClientsetsOut(kubeutil.DefaultConfigStr())
 	assert.NilError(t, err)
@@ -106,6 +131,25 @@ func TestDispatchJob(t *testing.T) {
 func TestDeployRun(t *testing.T) {
 	klog.InitFlags(nil)
 	iperfTask := IperfTestTask
+	k8sClient, myClient, err := util.GetAllClientsetsOut(kubeutil.DefaultConfigStr())
+	assert.NilError(t, err)
+
+	iperfTask, err = myClient.IperfAlpha1().IperfTasks("default").Create(iperfTask)
+	assert.NilError(t, err)
+
+	ici := NewIperfTaskInfo(iperfTask, iperfTask.Namespace, iperfTask.Name, string(iperfTask.UID))
+	deployer := NewIperfTaskDeployer(k8sClient, myClient, ici)
+
+	content, err := deployer.Run()
+	assert.NilError(t, err)
+	assert.Assert(t, is.Equal(strings.HasPrefix(content, "<table"), true))
+	err = myClient.IperfAlpha1().IperfTasks("default").Delete(iperfTask.Name, nil)
+	assert.NilError(t, err)
+}
+
+func TestUdpDeployRun(t *testing.T) {
+	klog.InitFlags(nil)
+	iperfTask := UdpIperfTestTask
 	k8sClient, myClient, err := util.GetAllClientsetsOut(kubeutil.DefaultConfigStr())
 	assert.NilError(t, err)
 

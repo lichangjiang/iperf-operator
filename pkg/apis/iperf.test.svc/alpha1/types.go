@@ -29,6 +29,8 @@ type IperfServerSpec struct {
 
 type IperfClientSpec struct {
 	Mode     string `json:"mode,omitempty"`
+	Udp      bool   `json:"udp,omitempty"`
+	BwLimit  string `json:"bwLimit,omitempty"`
 	Parallel int32  `json:"parallel,omitempty"`
 	Interval int32  `json:"interval,omitempty"`
 	Duration int32  `json:"duration,omitempty"`

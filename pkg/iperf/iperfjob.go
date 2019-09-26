@@ -75,6 +75,25 @@ func (job *IperfJob) Run(k8sClient kubernetes.Interface) (string, error) {
 }
 
 func (job *IperfJob) createJob() *batch.Job {
+	args := []string{
+		"-c",
+		job.ServerIp,
+		"-p",
+		strconv.Itoa(int(job.ServerPort)),
+		"-i",
+		strconv.Itoa(int(job.ClientConfig.Interval)),
+		"-t",
+		strconv.Itoa(int(job.ClientConfig.Duration)),
+		"-J",
+	}
+	if job.ClientConfig.Udp {
+		args = append(args, "-u")
+		if job.ClientConfig.BwLimit != "" {
+			args = append(args, "-b")
+			args = append(args, job.ClientConfig.BwLimit)
+		}
+	}
+
 	j := &batch.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      job.Name,
@@ -91,19 +110,9 @@ func (job *IperfJob) createJob() *batch.Job {
 					Containers: []corev1.Container{
 						{
 							Command: []string{"iperf3"},
-							Args: []string{
-								"-c",
-								job.ServerIp,
-								"-p",
-								strconv.Itoa(int(job.ServerPort)),
-								"-i",
-								strconv.Itoa(int(job.ClientConfig.Interval)),
-								"-t",
-								strconv.Itoa(int(job.ClientConfig.Duration)),
-								"-J",
-							},
-							Name:  "iper-client",
-							Image: job.Image,
+							Args:    args,
+							Name:    "iper-client",
+							Image:   job.Image,
 						},
 					},
 					NodeSelector:  map[string]string{kubeutil.LabelHostname: job.JobNode},

@@ -42,6 +42,8 @@ type ClientConfig struct {
 	Parallel int32
 	Interval int32
 	Duration int32
+	Udp      bool
+	BwLimit  string
 }
 
 type IperfTaskDeployer struct {
@@ -97,6 +99,8 @@ func NewIperfTaskInfo(iperfTask *iperfalpha1.IperfTask, namespace, name, uid str
 			Parallel: parallel,
 			Interval: interval,
 			Duration: duration,
+			Udp:      iperfTask.Spec.ClientSpec.Udp,
+			BwLimit:  iperfTask.Spec.ClientSpec.BwLimit,
 		},
 	}
 }

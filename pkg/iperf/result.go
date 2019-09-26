@@ -26,11 +26,12 @@ const (
         <td style="text-align:center;font-weight:bold">Server</td>
         <td style="text-align:center;font-weight:bold">Client</td>
         <td style="text-align:center;font-weight:bold">Time</td>
-        <td style="text-align:center;font-weight:bold">SocketId</td>
-        <td style="text-align:center;font-weight:bold">TotalTransform</td>
-        <td style="text-align:center;font-weight:bold">MinBandWidth</td>
-        <td style="text-align:center;font-weight:bold">AvgBandWidth</td>
-        <td style="text-align:center;font-weight:bold">MaxBandWidth</td>
+        <td style="text-align:center;font-weight:bold">TCPMinBandWidth</td>
+        <td style="text-align:center;font-weight:bold">TCPAvgBandWidth</td>
+        <td style="text-align:center;font-weight:bold">TCPMaxBandWidth</td>
+        <td style="text-align:center;font-weight:bold">UDPBandWidth</td>
+        <td style="text-align:center;font-weight:bold">UDPJitterDelay</td>
+        <td style="text-align:center;font-weight:bold">UDPLostPacket</td>
     </tr>
     `
 	htmlTable      = "<table>%s<table>\n"
@@ -142,7 +143,7 @@ type Sum struct {
 	JitterMs      float64 `json:"jitter_ms"`
 	LostPackets   int     `json:"lost_packets"`
 	Packets       int     `json:"packets"`
-	LostPercent   int     `json:"lost_percent"`
+	LostPercent   float64 `json:"lost_percent"`
 }
 
 type CpuUtilPercent struct {
@@ -192,10 +193,20 @@ type SocketStatis struct {
 	AvgBandWidth float64
 }
 
+type UdpStatis struct {
+	JitterMs      float64
+	LostPackets   int
+	Packets       int
+	LostPercent   float64
+	BitsPerSecond float64
+}
+
 type IperfClientStatis struct {
+	Protocol     string
 	Start        float64
 	End          float64
 	IntervalNum  int
+	UdpStatis    UdpStatis
 	SocketStatis []SocketStatis
 	Version      string
 	SystemInfo   string
@@ -217,11 +228,38 @@ func ParseLog(log string) (*IperfJson, error) {
 	return &j, nil
 }
 
-func (j *IperfJson) Analyse() IperfClientStatis {
-
+func (j *IperfJson) parseUdp() IperfClientStatis {
 	version := j.Start.Version
 	si := j.Start.SystemInfo
 	ts := j.Start.Timestamp.Time
+	protocol := j.Start.TestStart.Protocol
+	start := j.End.Sum.Start
+	end := j.End.Sum.End
+	intervalnum := len(j.Intervals)
+
+	return IperfClientStatis{
+		Protocol:    protocol,
+		Start:       start,
+		End:         end,
+		IntervalNum: intervalnum,
+		Version:     version,
+		SystemInfo:  si,
+		Timestamp:   ts,
+		UdpStatis: UdpStatis{
+			BitsPerSecond: j.End.Sum.BitsPerSecond,
+			JitterMs:      j.End.Sum.JitterMs,
+			LostPackets:   j.End.Sum.LostPackets,
+			Packets:       j.End.Sum.Packets,
+			LostPercent:   j.End.Sum.LostPercent,
+		},
+	}
+}
+
+func (j *IperfJson) parseTcp() IperfClientStatis {
+	version := j.Start.Version
+	si := j.Start.SystemInfo
+	ts := j.Start.Timestamp.Time
+	protocol := j.Start.TestStart.Protocol
 	start := j.End.SumSent.Start
 	end := j.End.SumSent.End
 	intervalnum := len(j.Intervals)
@@ -281,6 +319,7 @@ func (j *IperfJson) Analyse() IperfClientStatis {
 	}
 
 	return IperfClientStatis{
+		Protocol:     protocol,
 		Start:        start,
 		End:          end,
 		IntervalNum:  intervalnum,
@@ -288,6 +327,15 @@ func (j *IperfJson) Analyse() IperfClientStatis {
 		SystemInfo:   si,
 		Timestamp:    ts,
 		SocketStatis: sslice,
+	}
+}
+
+func (j *IperfJson) Analyse() IperfClientStatis {
+	protocol := j.Start.TestStart.Protocol
+	if protocol == "UDP" {
+		return j.parseUdp()
+	} else {
+		return j.parseTcp()
 	}
 }
 
@@ -299,24 +347,21 @@ func HtmlTablePrint(serverKeyMap map[string][]CSKey,
 
 	buf.WriteString(htmlTableTitle)
 	for server, csKeys := range serverKeyMap {
-		var rowSpan int
+		rowSpan := len(csKeys)
 		isHead := true
 
 		buf.WriteString("<tr>\n")
-		for _, key := range csKeys {
-			ics := statisMap[key]
-			rowSpan += len(ics.SocketStatis)
-		}
 		serverCol := fmt.Sprintf(htmlColSpanRow, rowSpan, server)
 		buf.WriteString(serverCol)
 		for _, key := range csKeys {
+			if isHead != true {
+				buf.WriteString("<tr>\n")
+			} else {
+				isHead = false
+			}
 			ics := statisMap[key]
 			row := ics.htmlRowPrint(key.Client, isHead)
 			buf.WriteString(row)
-			if isHead == true {
-				buf.WriteString("</tr>\n")
-				isHead = false
-			}
 		}
 	}
 
@@ -324,51 +369,60 @@ func HtmlTablePrint(serverKeyMap map[string][]CSKey,
 	return buf.String()
 }
 
-func (i IperfClientStatis) htmlRowPrint(client string, isHead bool) string {
-	if len(i.SocketStatis) == 0 {
-		return ""
+func (i IperfClientStatis) htmlRowPrint(client string, _ bool) string {
+	isUdp := false
+	if i.SocketStatis == nil || len(i.SocketStatis) == 0 {
+		isUdp = true
 	}
 
 	var buf bytes.Buffer
-	rowSpan := len(i.SocketStatis)
-	if !isHead {
-		buf.WriteString("<tr>")
-	}
-	buf.WriteString(fmt.Sprintf("<td style=\"text-align:center\" rowspan=\"%d\">", rowSpan))
+
+	buf.WriteString("<td style=\"text-align:center\">")
 	buf.WriteString(client)
 	buf.WriteString("</td>\n")
 
-	buf.WriteString(fmt.Sprintf("<td style=\"text-align:center\" rowspan=\"%d\">", rowSpan))
+	buf.WriteString("<td style=\"text-align:center\">")
 	buf.WriteString(fmt.Sprintf("%.2f~%.2f<br>IntervalNum:%d", i.Start, i.End, i.IntervalNum))
 	buf.WriteString("</td>\n")
-	buf.WriteString(i.htmlColPrint())
-	if !isHead {
-		buf.WriteString("</tr>")
-	}
+	buf.WriteString(i.htmlColPrint(isUdp))
+	buf.WriteString("</tr>")
 	return buf.String()
 }
 
-func (i IperfClientStatis) htmlColPrint() string {
+func (i IperfClientStatis) htmlColPrint(isUdp bool) string {
 	var buf bytes.Buffer
 
-	for num, ss := range i.SocketStatis {
-		id := ss.Id
-		totalTran := Round2DataStr(ss.TotalTrans, false)
+	if !isUdp {
+		ss := i.SocketStatis[0]
+		//id := ss.Id
+		//totalTran := Round2DataStr(ss.TotalTrans, false)
 		min := Round2DataStr(ss.MinBandWidth, true)
 		max := Round2DataStr(ss.MaxBandWidth, true)
 		avg := Round2DataStr(ss.AvgBandWidth, true)
-		if num != 0 {
-			buf.WriteString("<tr>")
-		}
-		buf.WriteString(fmt.Sprintf(htmlCol, fmt.Sprintf("%d", id)))
-		buf.WriteString(fmt.Sprintf(htmlCol, totalTran))
+
+		//buf.WriteString(fmt.Sprintf(htmlCol, fmt.Sprintf("%d", id)))
+		//buf.WriteString(fmt.Sprintf(htmlCol, totalTran))
 		buf.WriteString(fmt.Sprintf(htmlCol, min))
 		buf.WriteString(fmt.Sprintf(htmlCol, avg))
 		buf.WriteString(fmt.Sprintf(htmlCol, max))
-		if num != 0 {
-			buf.WriteString("</tr>")
-		}
+
+		buf.WriteString(fmt.Sprintf(htmlCol, "N/A"))
+		buf.WriteString(fmt.Sprintf(htmlCol, "N/A"))
+		buf.WriteString(fmt.Sprintf(htmlCol, "N/A"))
+	} else {
+		buf.WriteString(fmt.Sprintf(htmlCol, "N/A"))
+		buf.WriteString(fmt.Sprintf(htmlCol, "N/A"))
+		buf.WriteString(fmt.Sprintf(htmlCol, "N/A"))
+		//udp数据
+		buf.WriteString(fmt.Sprintf(htmlCol, Round2DataStr(i.UdpStatis.BitsPerSecond, true)))
+		buf.WriteString(fmt.Sprintf(htmlCol, fmt.Sprintf("%.4f ms", i.UdpStatis.JitterMs)))
+		buf.WriteString(fmt.Sprintf(htmlCol,
+			fmt.Sprintf("%d/%d (%.2f %%)",
+				i.UdpStatis.LostPackets,
+				i.UdpStatis.Packets,
+				i.UdpStatis.LostPercent)))
 	}
+
 	return buf.String()
 }
 

@@ -116,7 +116,7 @@ spec:
       serviceAccountName: iperf-operator
       containers:
       - name: iperf-operator
-        image: riverlcj/iperf:v0.2.0 
+        image: riverlcj/iperf:v0.3.1 
         imagePullPolicy: Always
         command: ["iperf-operator","operator"] 
         env:
