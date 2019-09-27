@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	GB = 1024 * 1024 * 1024
-	MB = 1024 * 1024
-	KB = 1024
+	GB = 1000 * 1000 * 1000
+	MB = 1000 * 1000
+	KB = 1000
 
 	GbitsSec = "Gbits/sec"
 	MbitsSec = "Mbits/sec"
